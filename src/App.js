@@ -1,4 +1,4 @@
-import React,{useState} from "react";
+import React,{useState,useEffect} from "react";
 import './App.css';
 import NavBar from './components/NavBar'
 import Header from './components/Header'
@@ -11,8 +11,120 @@ import {BrowserRouter as Router, Route,Routes} from 'react-router-dom'
 
 function App() {
  
-    //initial data
-        const data= [
+        //show and hide add task section
+       const [toggleAdd, setToggleAdd]=useState(false)
+
+        const [tasks, setTasks]=useState([])
+       
+         //fetch all data from server
+         const fetchTasks = async()=>{
+          const res = await fetch("http://localhost:5000/tasks")
+          const data =await res.json()
+          return data
+        }
+
+       //fetch a single data from server
+        const fetchTask = async(id)=>{
+        const res = await fetch(`http://localhost:5000/tasks/${id}`)
+          const data =await res.json()
+          return data
+        }
+        //call fetchTasks in useEffect, and setTasks
+        useEffect(()=>{
+         const getData=async()=>{
+           const data = await fetchTasks()
+           setTasks(data)
+         }
+
+         getData()
+         console.log(tasks)
+        }, [])
+
+       
+        //delete task
+        const handleDelete = async(id)=>{
+         console.log("delete",id)
+         await fetch(`http://localhost:5000/tasks/${id}`,{
+          method:'DELETE',
+         })
+
+         if (window.confirm('Do you want to delete ?')) {
+          setTasks(tasks.filter((task)=>task.id!==id))
+         }
+         
+        }
+
+         //toggle reminder
+         const handleToggle=async(id)=>{
+          const taskToToggle = await fetchTask(id)
+          const updtask = {...taskToToggle,
+          reminder:!taskToToggle.reminder}
+
+          //make update request
+          const res = await fetch(`http://localhost:5000/tasks/${id}`,{
+            method:"PUT",
+            headers:{
+              'Content-type':'application/json'
+            },
+            body:JSON.stringify(updtask)
+          })
+          //console.log("toggle",id)
+          const data= await res.json()
+
+          setTasks(tasks.map((task)=>
+            task.id===id ? 
+              {...task, reminder:data.reminder}:task
+            
+          ))
+         
+         }
+
+        //add task
+        const handleAdd= async(task)=>{
+         const res = await fetch("http://localhost:5000/tasks",{
+          method:'POST',
+          headers:{
+            'Content-type':'application/json'
+          },
+          body:JSON.stringify(task)
+         })
+
+         const data= await res.json()
+         // console.log("add", task)
+        
+          setTasks([...tasks,data])
+        }
+    //handle show and hide of add task component
+        const handleToggleAdd=()=>{
+          setToggleAdd(!toggleAdd)
+          console.log(toggleAdd)
+        }
+ 
+  return (
+    <Router>
+    <NavBar/>
+  
+    <Routes>
+    <Route path='/'  element={ <div className="main">
+      <Header handleToggleAdd={handleToggleAdd} toggleAdd={toggleAdd}/>
+      {toggleAdd && <AddTask handleAdd={handleAdd}/>}
+      <Tasks tasks={tasks} handleDelete={handleDelete} handleToggle={handleToggle} /></div>}/>
+      
+    <Route path='/About' element={<About/>}/>
+    
+    </Routes>
+    <Footer/>
+    </Router>
+  );
+}
+
+export default App;
+
+/* without server
+function App() {
+ 
+    //initial data with out server
+      const data= [
             {
                 id: 1,
                 text: 'Doctors Appointment',
@@ -35,10 +147,15 @@ function App() {
                 reminder: true
               }
         ]
+        
+        const [tasks, setTasks]=useState()
+        
+        
         //show and hide add task section
-       const [toggleAdd, setToggleAdd]=useState(false)
+        const [toggleAdd, setToggleAdd]=useState(false)
 
         const [tasks, setTasks]=useState(data)
+       
 
         //delete task
         const handleDelete=(id)=>{
@@ -93,3 +210,4 @@ function App() {
 }
 
 export default App;
+*/
